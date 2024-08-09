@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"time"
 )
 
@@ -26,7 +27,7 @@ func handle_error(err error) {
 func main() {
 	force_notify := len(os.Args) > 1 && os.Args[1] == "--force-notify"
 
-	last_run, err := os.Create("last_run.txt")
+	last_run, err := os.Create(path.Join(path.Dir(os.Args[0]), "last_run.txt"))
 	if err != nil {
 		log.Printf("Cannot create file: %v", err)
 	} else {
