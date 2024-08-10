@@ -1,70 +1,76 @@
 package main
 
 import (
-	"fmt"
+	"aphoteka_scraper/manifest"
+	"aphoteka_scraper/permanence"
+	"aphoteka_scraper/scraper"
+	"aphoteka_scraper/telegram"
 	"log"
 	"os"
-	"path"
-	"time"
 )
 
-type Availability struct {
-	price    uint
-	tag      string
-	url      string
-	currency string
-}
-
-func handle_error(err error) {
-	new_err := send_update(fmt.Sprintf("Error: %s", err))
-	if new_err != nil {
-		log.Panicf("Cannot send telegram update:\n%v", err)
-	}
-}
-
 // Don't forget to update crontab!
+var urls = map[string]string{
+	"dexcom-sensor":        "https://www.apotheka.lv/dexcom-one-sensors-pmm0171563lv",
+	"dexcom-sensor-3-pack": "https://www.apotheka.lv/dexcom-one-sensors-3pack-pmm0172453lv",
+}
 
 func main() {
-	force_notify := len(os.Args) > 1 && os.Args[1] == "--force-notify"
+	defer permanence.Logger.Save()
 
-	last_run, err := os.Create(path.Join(path.Dir(os.Args[0]), "last_run.txt"))
-	if err != nil {
-		log.Printf("Cannot create file: %v", err)
-	} else {
-		defer last_run.Close()
-		fmt.Fprintf(last_run, "Last run: %v\nForce notify: %v\n",
-			time.Now(), force_notify)
+	work()
+
+	if permanence.Logger.HasErrors() {
+		err := telegram.SendErrors()
+		if err != nil {
+			log.Panicf("Cannot send errors via telegram: %v", err)
+		}
 	}
+}
 
-	r, err := fetch_data(map[string]string{
-		"dexcom-sensor":        "https://www.apotheka.lv/dexcom-one-sensors-pmm0171563lv",
-		"dexcom-sensor-3-pack": "https://www.apotheka.lv/dexcom-one-sensors-3pack-pmm0172453lv",
-	})
+func work() {
+	// parse command line options
+	force_notify := len(os.Args) > 1 && os.Args[1] == "--force-notify"
+	permanence.Logger.AddForceNotify(force_notify)
+
+	// fetch the date, generate a new manifest
+	m, err := scraper.FetchData(urls)
 	if err != nil {
-		handle_error(err)
+		permanence.Logger.AddError(err)
 		return
 	}
+	permanence.Logger.AddManifest(m)
 
-	needs_update := false
-	for _, av := range r {
-		if av.tag != "https://schema.org/OutOfStock" {
-			needs_update = true
-			break
+	// load previous manifest from disk
+	prev_manifest, err := permanence.LoadManifest()
+	if err != nil {
+		log.Printf("Cannot access previous manifest: %v", err)
+		permanence.Logger.AddError(err)
+	}
+
+	// check whether manifests match
+	needs_update := !manifest.AreEqual(prev_manifest, m)
+
+	// save new manifest to disk
+	if needs_update {
+		err = permanence.SaveManifest(m)
+		if err != nil {
+			permanence.Logger.AddError(err)
+			log.Printf("Cannot save new manifest: %v", err)
 		}
 	}
 
-	msg := generate_message(r)
+	// generate a message to send, also print it to stdout
+	msg := m.GenerateMessage()
+	permanence.Logger.AddMessage(msg)
 	log.Printf("Message:\n%v\n\n(end)", msg)
 
-	if last_run != nil {
-		fmt.Fprintf(last_run, "Fetch result: %v\nMessage:\n%v\n", r, msg)
-	}
-
+	// notify via telegram
 	if needs_update || force_notify {
-		err := send_update(msg)
+		err := telegram.SendUpdate(msg)
 		if err != nil {
-			log.Panicf("Cannot send telegram update:\n%v", err)
+			permanence.Logger.AddError(err)
+			log.Printf("Cannot send telegram update:\n%v", err)
 		}
 	}
-
 }

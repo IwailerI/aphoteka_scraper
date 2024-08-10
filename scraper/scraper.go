@@ -1,6 +1,7 @@
-package main
+package scraper
 
 import (
+	"aphoteka_scraper/manifest"
 	"encoding/json"
 	"errors"
 	"log"
@@ -8,8 +9,7 @@ import (
 	"github.com/gocolly/colly"
 )
 
-func fetch_data(input map[string]string) (map[string]Availability, error) {
-
+func FetchData(input map[string]string) (manifest.Manifest, error) {
 	var e []error
 
 	c := colly.NewCollector(
@@ -18,7 +18,7 @@ func fetch_data(input map[string]string) (map[string]Availability, error) {
 
 	const XPATH = `//script[@type="application/ld+json"]`
 
-	available := make(map[string]Availability)
+	available := make(map[string]manifest.Availability)
 
 	c.OnXML(XPATH, func(x *colly.XMLElement) {
 		var data []struct {
@@ -43,12 +43,11 @@ func fetch_data(input map[string]string) (map[string]Availability, error) {
 			))
 			return
 		}
-		available[x.Request.URL.String()] = Availability{
-			price:    uint(data[0].Offers.Price * 100),
-			tag:      data[0].Offers.Availability,
-			currency: data[0].Offers.PriceCurrency,
+		available[x.Request.URL.String()] = manifest.Availability{
+			Price:    uint(data[0].Offers.Price * 100),
+			Tag:      data[0].Offers.Availability,
+			Currency: data[0].Offers.PriceCurrency,
 		}
-		log.Println(available)
 
 	})
 
@@ -63,17 +62,17 @@ func fetch_data(input map[string]string) (map[string]Availability, error) {
 		}
 	}
 
-	output := make(map[string]Availability)
+	manifest := make(manifest.Manifest)
 	for name, url := range input {
 		v, ok := available[url]
 		if !ok {
 			log.Printf("Invalid url: %v", url)
 		}
 
-		v.url = url
+		v.Url = url
 
-		output[name] = v
+		manifest[name] = v
 	}
 
-	return output, errors.Join(e...)
+	return manifest, errors.Join(e...)
 }
