@@ -1,5 +1,5 @@
 # What is this
-This is a utility executable, that checks whether certain aphoteka products are 
+This is a telegram bot, that checks whether certain aphoteka products are 
 available and notifies via telegram if they are.
 The program will notify on any change in product status or any error encountered
 by it.
@@ -7,28 +7,37 @@ by it.
 # Setup
 Create 2 files in the root of the repository: 
 - `secrets/token.secret`: should contain discord bot api key
-- `sercrest/chats.secret`: should contain discord channel ids, one on each line
+- `sercrest/root_user.secret`: should contain singular telegram username: root
+user, you will set up all of the settings from that account
 
-Each channel in `chats.secret` will be notified by the bot, whose token is 
-provided in `token.secret`.
+# Configuration
+Start messaging the bot. It will have a lot of commands. Here is a partial 
+breakdown:
 
-Currently 2 dexcom products are hard-coded into the main file.
+- add / remove / list users - only users in this list will be able to interact
+with the bot. Root user is always in this list
+- add / remove / list (possible service) channels - there are 2 types of channels:
+notification and service. Notification channels only get product updates, service
+channels only get error logs and so on.
+- add / remove / list products: each product consists of a unique name and a url,
+only added products will be tracked
+- start / stop notifications: manage notifications or temporarily
+disable them
+- set interval: change how often aphoteka is queried
+- check now: ignore interval and check now
+- force update: ignore interval, check now and notify regardless of result
 
 # Implementation
-Program creates 2 files on each run: both in `~/.config/aphoteka_scraper` on linux
-and `%LocalAppData%/aphoteka_scraper` on windows.
-`last_run.txt` contains some info about the last run in human readable format,
-`manifest.gob` contains the last manifest serialized using [GOV](https://pkg.go.dev/encoding/gob).
+Bot has a 2 main files for permanens: `config.gob` and `manifest.gob`, both 
+encoded using [GOB](https://pkg.go.dev/encoding/gob). They are located in 
+`~/.config/aphoteka_scraper` on linux and `%LocalAppData%/aphoteka_scraper` on 
+windows.
+`config.gob` contains all settings that were configured.
+`manifest.gob` contains the last manifest fetched.
 
 - `package manifest` declares the manifest type.
-- `package permanence` implements simple logging as well as manifest file IO.
+- `package permanence` implements manifest file IO.
 - `package scraper` implements actual scraping from the aphoteka website.
 - `package secrets` embeds sensitive data. I was too lazy to setup proper .env.
-- `package telegram` implements message sending via telegram.
-
-And everything is driven from `main.go`.
-
-
-# Options
-By default, bot will notify channels only when products are available. This can 
-be overridden if `--force-notify` is provided as first command line argument.
+- `package telegram` implements message sending via telegram and the interactive 
+server.

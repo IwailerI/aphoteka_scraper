@@ -8,6 +8,9 @@ import (
 //go:embed token.secret
 var Token string
 
+//go:embed root_user.secret
+var RootUser string
+
 //go:embed chats.secret
 var channelsRaw string
 
@@ -18,4 +21,7 @@ func init() {
 	for _, part := range parts {
 		ChannelIds = append(ChannelIds, strings.TrimSpace(part))
 	}
+
+	RootUser = "@" + strings.TrimPrefix(RootUser, "@")
+
 }
