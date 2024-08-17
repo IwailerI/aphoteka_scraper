@@ -13,7 +13,14 @@ func GetUserDir() (string, error) {
 		return "", err
 	}
 
-	return path.Join(filename, "aphoteka_scraper"), nil
+	p := path.Join(filename, "aphoteka_scraper")
+
+	err = os.MkdirAll(p, 0666)
+	if err != nil {
+		return "", err
+	}
+
+	return p, nil
 }
 
 func getManifestFilename() (string, error) {

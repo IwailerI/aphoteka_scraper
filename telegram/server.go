@@ -175,6 +175,11 @@ func checkAndNotify(ctx context.Context, b *bot.Bot, forceUpdate bool) {
 	lastCheck = time.Now()
 	error_slice := []error{}
 
+	if len(newManifest) == 0 {
+		notifyService(ctx, b, "No products are configured, no notifications will be sent.")
+		return
+	}
+
 	msg := newManifest.GenerateMessage()
 
 	log.Print(msg)
@@ -205,7 +210,7 @@ func handleError(ctx context.Context, b *bot.Bot, err error) {
 		return
 	}
 
-	m := fmt.Sprintf("[SERVICE]\n%v", err)
+	m := fmt.Sprint(err)
 	log.Print(m)
 
 	err = notifyService(ctx, b, m)
@@ -230,6 +235,7 @@ func handleSaveError(ctx context.Context, b *bot.Bot, err error) {
 }
 
 func notifyService(ctx context.Context, b *bot.Bot, msg string) error {
+	msg = "[SERVICE]\n" + msg
 	error_slice := []error{}
 	for _, channel := range config.ServiceChannels {
 		_, err := b.SendMessage(ctx, &bot.SendMessageParams{

@@ -8,7 +8,6 @@ import (
 )
 
 func FetchAndCompare(urls map[string]string) (newManifest manifest.Manifest, needsUpdate bool, e error) {
-
 	ers := []error{}
 
 	// fetch the date, generate a new manifest
