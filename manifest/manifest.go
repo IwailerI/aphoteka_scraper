@@ -17,7 +17,6 @@ type Availability struct {
 }
 
 func (m *Manifest) GenerateMessage() string {
-
 	var builder strings.Builder
 
 	keys := []string{}
