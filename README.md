@@ -1,11 +1,16 @@
-# What is this
+# The problem
+Certain e-comerse web site silently changes prices or delists products completly. I would like to track the changes of the price.
+
+## The solution
+Create a server which watches the prices, records the differences and notifies me.
+
 This is a telegram bot, that checks whether certain aphoteka products are 
-available and notifies via telegram if they are.
+available and notifies via telegram if they are, or their prices changes.
 The program will notify on any change in product status or any error encountered
 by it.
 
 # Setup
-Create 2 files in the root of the repository: 
+Create 2 files: 
 - `secrets/token.secret`: should contain discord bot api key
 - `sercrest/root_user.secret`: should contain singular telegram username: root
 user, you will set up all of the settings from that account
